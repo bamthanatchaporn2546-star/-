@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}
+    ค่าปรับของฉัน
+{% endblock title %}
+{% block content %}
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="fw-bold">
+                    <i class="bi bi-cash-coin text-primary"></i> ค่าปรับของฉัน
+                </h1>
+                <p class="text-muted">รายการค่าปรับทั้งหมดของคุณ</p>
+            </div>
+        </div>
+        <!-- Fine Information Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info border-0 shadow-sm">
+                    <h5 class="alert-heading mb-3">
+                        <i class="bi bi-info-circle-fill"></i> ข้อมูลค่าปรับ
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <strong><i class="bi bi-clock-fill text-warning"></i> คืนช้า:</strong>
+                            <span class="ms-2">{{ fine_late_return_per_day }} บาท/วัน/เล่ม</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong><i class="bi bi-x-circle-fill text-danger"></i> หนังสือหาย:</strong>
+                            <span class="ms-2">{{ fine_lost_book }} บาท/เล่ม</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong><i class="bi bi-bandaid-fill text-dark"></i> หนังสือชำรุด:</strong>
+                            <span class="ms-2">ตามความเสียหาย</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Summary Card -->
+        {% comment %} <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card bg-success text-white shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">
+                                    <i class="bi bi-check-circle-fill"></i> ค่าปรับที่ชำระแล้ว
+                                </h5>
+                                <h2 class="mb-2 fw-bold">฿{{ total_amount|floatformat:2 }}</h2>
+                            </div>
+                            <div>
+                                <i class="bi bi-shield-check" style="font-size: 4rem; opacity: 0.3;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> {% endcomment %}
+        <!-- Fines List -->
+        {% if fines %}
+            <div class="row">
+                <div class="col">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-light py-3">
+                            <h5 class="mb-0 fw-semibold">
+                                <i class="bi bi-list-ul"></i> รายการค่าปรับทั้งหมด ({{ fines.paginator.count }} รายการ)
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>หนังสือ</th>
+                                            <th style="width: 150px;">ประเภท</th>
+                                            <th style="width: 120px;" class="text-end">จำนวนเงิน</th>
+                                            <th style="width: 180px;">วันที่ชำระ</th>
+                                            <th style="width: 100px;" class="text-center">เหตุผล</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for fine in fines %}
+                                            <tr>
+                                                <td>{{ fine.loan_item.book.title }}</td>
+                                                <td>
+                                                    {% if fine.type == 'late_return' %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-clock-fill"></i> {{ fine.get_type_display }}
+                                                        </span>
+                                                    {% elif fine.type == 'lost' %}
+                                                        <span class="badge bg-danger">
+                                                            <i class="bi bi-x-circle-fill"></i> {{ fine.get_type_display }}
+                                                        </span>
+                                                    {% elif fine.type == 'damaged' %}
+                                                        <span class="badge bg-dark">
+                                                            <i class="bi bi-bandaid-fill"></i> {{ fine.get_type_display }}
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="fw-semibold text-success text-end">฿{{ fine.amount|floatformat:2 }}</td>
+                                                <td class="text-muted">
+                                                    <i class="bi bi-calendar-check"></i>
+                                                    {{ fine.paid_at|date:"d/m/Y H:i" }}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if fine.reason %}
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-secondary"
+                                                                data-bs-toggle="popover"
+                                                                data-bs-trigger="focus"
+                                                                data-bs-content="{{ fine.reason }}"
+                                                                title="เหตุผล"
+                                                                tabindex="0">
+                                                            <i class="bi bi-info-circle"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Pagination -->
+                        {% if fines.has_other_pages %}
+                            <div class="card-footer bg-light">
+                                <nav aria-label="Fines pagination">
+                                    <ul class="pagination justify-content-center mb-0">
+                                        {% if fines.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=1">
+                                                    <i class="bi bi-chevron-double-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ fines.previous_page_number }}">
+                                                    <i class="bi bi-chevron-left"></i> ก่อนหน้า
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        <li class="page-item active">
+                                            <span class="page-link fw-medium">หน้า {{ fines.number }} / {{ fines.paginator.num_pages }}</span>
+                                        </li>
+                                        {% if fines.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ fines.next_page_number }}">
+                                                    ถัดไป <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ fines.paginator.num_pages }}">
+                                                    <i class="bi bi-chevron-double-right"></i>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-wallet2 text-muted" style="font-size: 5rem;"></i>
+                <h4 class="mt-4 text-muted">คุณไม่มีประวัติค่าปรับ</h4>
+                <p class="text-muted mb-4">ยอดเยี่ยม! คุณยังไม่มีค่าปรับใด ๆ ในระบบ</p>
+                <a href="{% url 'books:book_list' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-search"></i> เรียกดูหนังสือ
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    <script>
+    // Initialize Bootstrap popovers
+    document.addEventListener('DOMContentLoaded', function () {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    });
+    </script>
+{% endblock content %}

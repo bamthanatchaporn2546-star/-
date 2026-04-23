@@ -1,0 +1,137 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}
+    จัดการการจอง
+{% endblock title %}
+{% block page_title %}
+    <i class="bi bi-calendar-check"></i> จัดการการจอง
+{% endblock page_title %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-calendar-check"></i> รายการจอง
+        </h3>
+    </div>
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search_id" class="form-label">ค้นหาจาก ID</label>
+                    <input type="text"
+                           name="search_id"
+                           id="search_id"
+                           class="form-control"
+                           placeholder="กรอก Hold ID"
+                           value="{{ search_id }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search_user" class="form-label">ค้นหาจากข้อมูลผู้ใช้</label>
+                    <input type="text"
+                           name="search_user"
+                           id="search_user"
+                           class="form-control"
+                           placeholder="รหัสประชาชน, ชื่อผู้ใช้, อีเมล, ชื่อ-นามสกุล, เบอร์โทร"
+                           value="{{ search_user }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="status" class="form-label">สถานะ</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>ทั้งหมด</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}"
+                                    {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> ค้นหา
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Hold items List -->
+    {% if holds %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                    </colgroup>
+                    <tr>
+                        <th>ID</th>
+                        <th>ชื่อ - นามสกุล</th>
+                        <th>สถานะ</th>
+                        <th>วันที่จอง</th>
+                        <th>หมดอายุ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hold in holds %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'holds:dashboard_hold_detail' hold.id %}"
+                                   class="text-decoration-none">
+                                    <strong>#{{ hold.id }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ hold.user.get_full_name|default:hold.user.username }}</td>
+                            <td>
+                                {% if hold.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-clock"></i> {{ hold.get_status_display }}
+                                    </span>
+                                {% elif hold.status == 'confirmed' %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-box-seam"></i> {{ hold.get_status_display }}
+                                    </span>
+                                {% elif hold.status == 'completed' %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> {{ hold.get_status_display }}
+                                    </span>
+                                {% elif hold.status == 'expired' %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> {{ hold.get_status_display }}
+                                    </span>
+                                {% elif hold.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-x-circle"></i> {{ hold.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ hold.created_at|date:"d/m/Y H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if hold.expires_at %}
+                                    <small class="{% if hold.status == 'confirmed' and hold.is_expired %}text-danger fw-bold{% endif %}">
+                                        {{ hold.expires_at|date:"d/m/Y H:i" }}
+                                        {% if hold.status == 'confirmed' and hold.is_expired %}
+                                            <br>
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> หมดเวลารับแล้ว!
+                                            </span>
+                                        {% endif %}
+                                    </small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> ไม่มีรายการจองในระบบ
+        </div>
+    {% endif %}
+{% endblock content %}

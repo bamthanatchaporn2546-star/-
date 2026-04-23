@@ -1,0 +1,341 @@
+{% extends "base_admin.html" %}
+{% block title %}
+    จัดการหนังสือ
+{% endblock title %}
+{% block page_title %}
+    <i class="bi bi-book"></i> จัดการหนังสือ
+{% endblock page_title %}
+{% block content %}
+    <style>
+		.book-cover-thumb {
+			width: 48px;
+			height: 64px;
+			object-fit: cover;
+		}
+    </style>
+    <!-- Header and Add Book Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-book"></i> รายการหนังสือ
+        </h3>
+        <a href="{% url 'books:dashboard_book_form' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> เพิ่มหนังสือ
+        </a>
+    </div>
+    <!-- Search and Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="bi bi-search"></i> ค้นหา
+                    </label>
+                    <input type="text"
+                           name="search"
+                           class="form-control"
+                           placeholder="ชื่อหนังสือ... , ISBN..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="bi bi-person"></i> ผู้แต่ง
+                    </label>
+                    <select name="author" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        {% for author in authors %}
+                            <option value="{{ author.id }}"
+                                    {% if author.id|stringformat:'s' == selected_author %}selected{% endif %}>
+                                {{ author.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="bi bi-tags"></i> หมวดหมู่
+                    </label>
+                    <select name="category" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}"
+                                    {% if category.id|stringformat:'s' == selected_category %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="bi bi-building"></i> สำนักพิมพ์
+                    </label>
+                    <select name="publisher" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        {% for publisher in publishers %}
+                            <option value="{{ publisher.id }}"
+                                    {% if publisher.id|stringformat:'s' == selected_publisher %}selected{% endif %}>
+                                {{ publisher.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="bi bi-sort-down"></i> เรียงตาม
+                    </label>
+                    <select name="sort" class="form-select">
+                        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>ชื่อหนังสือ (ก-ฮ)</option>
+                        <option value="-title" {% if sort_by == '-title' %}selected{% endif %}>ชื่อหนังสือ (ฮ-ก)</option>
+                        <option value="-created_at"
+                                {% if sort_by == '-created_at' %}selected{% endif %}>เพิ่มล่าสุด</option>
+                        <option value="created_at"
+                                {% if sort_by == 'created_at' %}selected{% endif %}>เพิ่มเก่าสุด</option>
+                        <option value="-available_quantity"
+                                {% if sort_by == '-available_quantity' %}selected{% endif %}>
+                            พร้อมให้ยืม (มากไปน้อย)
+                        </option>
+                        <option value="available_quantity"
+                                {% if sort_by == 'available_quantity' %}selected{% endif %}>
+                            พร้อมให้ยืม (น้อยไปมาก)
+                        </option>
+                        <option value="-borrowed_count"
+                                {% if sort_by == '-borrowed_count' %}selected{% endif %}>
+                            กำลังถูกยืม/จอง (มากไปน้อย)
+                        </option>
+                        <option value="borrowed_count"
+                                {% if sort_by == 'borrowed_count' %}selected{% endif %}>
+                            กำลังถูกยืม/จอง (น้อยไปมาก)
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> ค้นหา
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Book List Table -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul"></i> รายการหนังสือ ({{ page_obj.paginator.count }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj.object_list %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">ปก</th>
+                                <th style="width: 400px;">ชื่อหนังสือ</th>
+                                <th style="width: 160px;">ISBN</th>
+                                <th style="width: 120px;" class="text-center">จำนวนทั้งหมด</th>
+                                <th style="width: 120px;" class="text-center">พร้อมให้ยืม</th>
+                                <th style="width: 160px;">วันที่สร้าง</th>
+                                <th style="width: 180px;" class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for book in page_obj %}
+                                <tr>
+                                    <td>
+                                        {% if book.image_url %}
+                                            <img src="{{ book.image_url.url }}"
+                                                 alt="cover"
+                                                 class="rounded book-cover-thumb"
+                                                 width="48"
+                                                 height="64">
+                                        {% else %}
+                                            <span class="text-muted"><i class="bi bi-image"></i></span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ book.title }}</strong>
+                                    </td>
+                                    <td>{{ book.isbn|default:'-' }}</td>
+                                    <td class="text-center">{{ book.total_quantity }}</td>
+                                    <td class="text-center">
+                                        {% if book.available_quantity > 0 %}
+                                            <span class="badge bg-success">{{ book.available_quantity }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ book.created_at|date:"d/m/Y H:i" }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'books:dashboard_book_detail' book.id %}"
+                                           class="btn btn-sm btn-info"
+                                           title="ดูรายละเอียด">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'books:dashboard_book_form_id' book.id %}"
+                                           class="btn btn-sm btn-primary"
+                                           title="แก้ไข"><i class="bi bi-pencil"></i></a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteBookModal"
+                                                data-book-id="{{ book.id }}"
+                                                data-book-title="{{ book.title }}"
+                                                data-book-isbn="{{ book.isbn|default:'-' }}"
+                                                data-book-quantity="{{ book.total_quantity }}"
+                                                data-book-image="{% if book.image_url %}{{ book.image_url.url }}{% endif %}"
+                                                data-delete-url="{% url 'books:dashboard_book_delete' book.id %}"
+                                                title="ลบ">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-3">ไม่พบข้อมูลหนังสือ</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- Delete Confirmation Modal (Reusable) -->
+    <div class="modal fade"
+         id="deleteBookModal"
+         tabindex="-1"
+         aria-labelledby="deleteBookModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteBookModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill"></i> ยืนยันการลบหนังสือ
+                    </h5>
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3" id="deleteBookImageContainer">
+                        <div class="bg-light rounded d-inline-flex align-items-center justify-content-center"
+                             style="width: 100px;
+                                    height: 150px">
+                            <i class="bi bi-image fs-1 text-muted"></i>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>คำเตือน:</strong> การลบหนังสือนี้จะไม่สามารถยกเลิกได้
+                    </div>
+                    <p class="mb-2">
+                        <strong>คุณต้องการลบหนังสือนี้หรือไม่?</strong>
+                    </p>
+                    <div class="bg-light p-3 rounded">
+                        <p class="mb-2">
+                            <strong><i class="bi bi-book"></i> ชื่อหนังสือ:</strong> <span id="deleteBookTitle"></span>
+                        </p>
+                        <p class="mb-2">
+                            <strong><i class="bi bi-upc-scan"></i> ISBN:</strong> <span id="deleteBookIsbn"></span>
+                        </p>
+                        <p class="mb-0">
+                            <strong><i class="bi bi-box"></i> จำนวนทั้งหมด:</strong> <span id="deleteBookQuantity"></span> เล่ม
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> ยกเลิก
+                    </button>
+                    <form method="post" id="deleteBookForm" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> ยืนยันการลบ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_publisher %}&publisher={{ selected_publisher }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_publisher %}&publisher={{ selected_publisher }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">หน้า {{ page_obj.number }} จาก {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_publisher %}&publisher={{ selected_publisher }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_publisher %}&publisher={{ selected_publisher }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock content %}
+{% block extra_js %}
+    <script>
+        // Handle delete book modal
+        const deleteBookModal = document.getElementById('deleteBookModal');
+        
+        if (deleteBookModal) {
+            deleteBookModal.addEventListener('show.bs.modal', function (event) {
+                // Button that triggered the modal
+                const button = event.relatedTarget;
+                
+                // Extract info from data-* attributes
+                const bookId = button.getAttribute('data-book-id');
+                const bookTitle = button.getAttribute('data-book-title');
+                const bookIsbn = button.getAttribute('data-book-isbn');
+                const bookQuantity = button.getAttribute('data-book-quantity');
+                const bookImage = button.getAttribute('data-book-image');
+                const deleteUrl = button.getAttribute('data-delete-url');
+                
+                // Update the modal's content
+                document.getElementById('deleteBookTitle').textContent = bookTitle;
+                document.getElementById('deleteBookIsbn').textContent = bookIsbn;
+                document.getElementById('deleteBookQuantity').textContent = bookQuantity;
+                document.getElementById('deleteBookForm').action = deleteUrl;
+                
+                // Update the image
+                const imageContainer = document.getElementById('deleteBookImageContainer');
+                if (bookImage) {
+                    imageContainer.innerHTML = `
+                        <img src="${bookImage}" alt="${bookTitle}" class="img-fluid rounded shadow-sm" style="max-height: 150px;">
+                    `;
+                } else {
+                    imageContainer.innerHTML = `
+                        <div class="bg-light rounded d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 150px;">
+                            <i class="bi bi-image fs-1 text-muted"></i>
+                        </div>
+                    `;
+                }
+            });
+        }
+    </script>
+{% endblock extra_js %}
